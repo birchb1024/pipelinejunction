@@ -1,0 +1,46 @@
+- define:
+    $workspace: .
+- defmacro:
+    name: pipelines
+    args: pipes
+    value:
+      flatten:
+        repeat:
+          for: $p
+          in: pipes
+          body:
+            flatten:
+              - echo Pipeline {{ $p }}
+              - mkdir -p {{ $workspace }}/{{ $p }}
+              - repeat:
+                  for: $s
+                  in: pipes.$p.stages
+                  body:
+                    repeat:
+                      for: $sname
+                      in: $s
+                      body:
+                        - echo Stage {{ $sname }}
+                        - mkdir -p {{ $workspace }}/{{ $p }}/{{ $sname }}
+                        - repeat:
+                            for: $mat
+                            in: pipes.$p.materials
+                            body:
+                              - cd {{ $workspace }}/{{ $p }}/{{ $sname }}
+                              - git clone {{ pipes.$p.materials.$mat.git }}
+                              - repeat:
+                                  for: $j
+                                  in: $s.$sname.jobs
+                                  body:
+                                    - echo Job {{ $j }}
+                                    - repeat:
+                                        for: $t
+                                        in: $s.$sname.jobs.$j.tasks
+                                        body:
+                                          - "{{ $t.exec.command }}"
+
+#              - pipes.$p
+---
+flatten:
+#  include: ../test/fixtures/simple.gocd.yaml
+  include: ../test/fixtures/rich.gocd.yaml

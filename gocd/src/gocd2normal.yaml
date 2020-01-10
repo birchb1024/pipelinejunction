@@ -1,0 +1,100 @@
+- define:
+    $workspace: .
+- defmacro:
+    name: pipelines
+    args: $pipes
+    value:
+      $pipelines:
+        repeat:
+          for: $p
+          in: {range: $pipes}
+          body:
+            $pipeline:
+              merge:
+                - name: $p
+                - group: $pipes.$p.group
+                - materials:
+                    flatone:
+                      repeat:
+                        for: $m
+                        in: {range: $pipes.$p.materials}
+                        body:
+                          $material:
+                            merge:
+                              - pipelinename: $p
+                              - name: $m
+                              - git: $pipes.$p.materials.$m.git
+                - stages:
+                    flatone:
+                      repeat:
+                        for: $s
+                        in: $pipes.$p.stages
+                        body:
+                          repeat:
+                            for: $stagename
+                            in: {range: $s}
+                            body:
+                              $stage:
+                                merge:
+                                  - pipelinename: $p
+                                  - name: $stagename
+                                  - jobs:
+                                      repeat:
+                                        for: $j
+                                        in: {range: $s.$stagename.jobs}
+                                        body:
+                                          $job:
+                                            merge:
+                                              - pipelinename: $p
+                                              - stagename: $stagename
+                                              - name: $j
+                                              - materials: $pipes.$p.materials
+                                              - tasks: $s.$stagename.jobs.$j.tasks
+- defmacro:
+    name: $pipelines
+    args: $pipes
+    value:
+      flatten:
+        - "echo Pipelines------------------------"
+        - $pipes
+- defmacro:
+    name: $pipeline
+    args: [name, materials, stages, group]
+    value:
+        - "echo Pipeline {{ name }} - group {{group}}"
+        - materials
+        - stages
+- defmacro:
+    name: $stage
+    args: [pipelinename, name, jobs]
+    value:
+        - "echo Stage {{pipelinename}}.{{ name }}"
+        - jobs
+- defmacro:
+    name: $material
+    args: [pipelinename, name, git]
+    value:
+        "echo Material {{pipelinename}}.{{ name }} {{ git }}"
+- defmacro:
+    name: $job
+    args: [pipelinename, stagename, name, tasks, materials]
+    value:
+        - "echo Job {{pipelinename}}.{{stagename}}.{{name}}"
+        - mkdir -p {{pipelinename}}/{{stagename}}/{{name}}
+        - repeat:
+            for: $mname
+            in: {range: materials}
+            body: |
+              (
+              cd {{pipelinename}}/{{stagename}}/{{name}};
+              git clone {{materials.$mname.git}};
+              )
+        - flatten:
+            repeat:
+              for: $t
+              in: tasks
+              body:
+                - "{{$t.exec.command}}"
+---
+include: ../test/fixtures/simple.gocd.yaml
+#  include: ../test/fixtures/rich.gocd.yaml
