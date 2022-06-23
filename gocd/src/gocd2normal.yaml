@@ -1,5 +1,5 @@
 - define:
-    $workspace: .
+    $workspace: ./foo
 - defmacro:
     name: pipelines
     args: $pipes
@@ -79,14 +79,14 @@
     name: $job
     args: [pipelinename, stagename, name, tasks, materials]
     value:
-        - "echo Job {{pipelinename}}.{{stagename}}.{{name}}"
-        - mkdir -p {{pipelinename}}/{{stagename}}/{{name}}
+        - "echo Job {{$workspace}}/{{pipelinename}}.{{stagename}}.{{name}}"
+        - mkdir -p {{$workspace}}/{{pipelinename}}/{{stagename}}/{{name}}
         - repeat:
             for: $mname
             in: {range: materials}
             body: |
               (
-              cd {{pipelinename}}/{{stagename}}/{{name}};
+              cd {{$workspace}}/{{pipelinename}}/{{stagename}}/{{name}};
               git clone {{materials.$mname.git}};
               )
         - flatten:
